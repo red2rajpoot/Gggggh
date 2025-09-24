@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>GK Quiz</title>
+<style>
+  body { font-family: Arial, sans-serif; line-height: 1.6; padding: 20px; }
+  h2 { color: #333; }
+  #timer { font-size: 2em; font-weight: bold; color: #d9534f; margin-bottom: 20px; }
+  .question { margin-bottom: 15px; }
+  label { font-weight: bold; }
+  input[type="radio"] { margin-right: 5px; }
+  input[type="submit"] {
+    background-color: #5cb85c;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    cursor: pointer;
+    font-size: 1em;
+  }
+  #result { margin-top: 20px; padding: 15px; border: 1px solid #ccc; background-color: #f9f9f9; }
+</style>
+</head>
+<body>
+
+<h2>General Knowledge Quiz</h2>
+<div id="timer">5:00</div>
+
+<form id="quizForm">
+  <div class="question">
+    <label for="name">आपका नाम:</label><br>
+    <input type="text" id="name" name="name" required><br><br>
+  </div>
+  
+  <div class="question">
+    <p>1. भारत की राजधानी क्या है?</p>
+    <input type="radio" name="q1" value="Delhi" required> दिल्ली<br>
+    <input type="radio" name="q1" value="Mumbai"> मुंबई<br>
+    <input type="radio" name="q1" value="Kolkata"> कोलकाता<br>
+  </div>
+  
+  <div class="question">
+    <p>2. भारत का राष्ट्रीय पशु क्या है?</p>
+    <input type="radio" name="q2" value="Tiger" required> बाघ<br>
+    <input type="radio" name="q2" value="Lion"> शेर<br>
+    <input type="radio" name="q2" value="Elephant"> हाथी<br>
+  </div>
+
+  <div class="question">
+    <p>3. विश्व का सबसे बड़ा महासागर कौन सा है?</p>
+    <input type="radio" name="q3" value="Pacific" required> प्रशांत महासागर<br>
+    <input type="radio" name="q3" value="Atlantic"> अटलांटिक महासागर<br>
+    <input type="radio" name="q3" value="Indian"> हिंद महासागर<br>
+  </div>
+
+  <div class="question">
+    <p>4. सौरमंडल में सबसे गर्म ग्रह कौन सा है?</p>
+    <input type="radio" name="q4" value="Venus" required> शुक्र<br>
+    <input type="radio" name="q4" value="Mars"> मंगल<br>
+    <input type="radio" name="q4" value="Mercury"> बुध<br>
+  </div>
+  
+  <div class="question">
+    <p>5. भारत का राष्ट्रीय पक्षी क्या है?</p>
+    <input type="radio" name="q5" value="Peacock" required> मोर<br>
+    <input type="radio" name="q5" value="Sparrow"> गौरैया<br>
+    <input type="radio" name="q5" value="Pigeon"> कबूतर<br>
+  </div>
+  
+  <input type="hidden" id="score" name="score">
+  <input type="submit" value="जमा करें">
+</form>
+
+<div id="result"></div>
+<canvas id="scoreChart" width="200" height="200" style="display:none;"></canvas>
+
+<script>
+const quizForm = document.getElementById('quizForm');
+const timerElement = document.getElementById('timer');
+const resultElement = document.getElementById('result');
+const scoreChart = document.getElementById('scoreChart');
+const scoreInput = document.getElementById('score');
+
+const correctAnswers = {
+  q1: 'Delhi',
+  q2: 'Tiger',
+  q3: 'Pacific',
+  q4: 'Venus',
+  q5: 'Peacock'
+};
+
+let timeLeft = 300; // 5 minutes in seconds
+let timerId = setInterval(countdown, 1000);
+
+function countdown() {
+  if (timeLeft <= 0) {
+    clearTimeout(timerId);
+    submitQuiz();
+  } else {
+    const minutes = Math.floor(timeLeft / 60);
+    const seconds = timeLeft % 60;
+    timerElement.textContent = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+    timeLeft--;
+  }
+}
+
+function submitQuiz(event) {
+  if (event) event.preventDefault();
+  
+  const formData = new FormData(quizForm);
+  let score = 0;
+  
+  for (const [key, value] of formData.entries()) {
+    if (key.startsWith('q') && value === correctAnswers[key]) {
+      score++;
+    }
+  }
+
+  scoreInput.value = score;
+  showResult(score);
+  
+  fetch("https://script.google.com/macros/s/AKfycbzqDXBhwVTGJZTojRqZAuFpHVjumbQqWF3ECn5foTrPZDsNXr60-y5jK5NI5h3RGA5k/exec", {
+    method: 'POST',
+    body: new FormData(quizForm)
+  }).then(response => {
+    console.log('Form submitted successfully!');
+  }).catch(error => {
+    console.error('Submission failed!', error);
+  });
+}
+
+function showResult(score) {
+  const totalQuestions = Object.keys(correctAnswers).length;
+  resultElement.textContent = `आपका स्कोर है: ${score} out of ${totalQuestions}`;
+  
+  const wrongScore = totalQuestions - score;
+  
+  scoreChart.style.display = 'block';
+  const ctx = scoreChart.getContext('2d');
+
+  ctx.clearRect(0, 0, scoreChart.width, scoreChart.height);
+  
+  const data = [score, wrongScore];
+  const colors = ['#5cb85c', '#d9534f'];
+  let startAngle = 0;
+  
+  for(let i = 0; i < data.length; i++) {
+    const sliceAngle = (data[i] / totalQuestions) * 2 * Math.PI;
+    
+    ctx.beginPath();
+    ctx.arc(100, 100, 80, startAngle, startAngle + sliceAngle);
+    ctx.lineTo(100, 100);
+    ctx.fillStyle = colors[i];
+    ctx.fill();
+    startAngle += sliceAngle;
+  }
+}
+
+quizForm.addEventListener('submit', (event) => {
+  clearTimeout(timerId);
+  submitQuiz(event);
+});
+</script>
+</body>
+</html>
